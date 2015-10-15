@@ -39,6 +39,7 @@ class RetryException(Exception):
                           str(l.fileno())])
         app.config['last-retry'] = datetime.datetime.now()
         app.config['last-retry-component'] = component
+        shutil.rmtree(os.path.join(config['tmp']))
         pass
 
 

@@ -196,8 +196,14 @@ def elapsed(starttime):
 
 
 def spawn():
+    import tempfile
+    tempfile.tempdir = app.config['tmp']
     for fork in range(1, config.get('instances')):
         if os.fork() == 0:
             config['fork'] = fork
             log('FORKS', 'I am fork', config.get('fork'))
+            tmpdir = tempfile.mkdtemp()
+            app.config['tmp'] = tmpdir
             break
+    tmpdir = tempfile.mkdtemp()
+    app.config['tmp'] = tmpdir
