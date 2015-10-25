@@ -111,7 +111,7 @@ def cache(defs, this):
 
     if app.config.get('kbas-password', 'insecure') != 'insecure' and \
             app.config.get('kbas-url', 'http://foo.bar/') != 'http://foo.bar/':
-        if this.get('kind') is not 'cluster':
+        if this.get('kind') == 'chunk':
             with app.timer(this, 'upload'):
                 upload(defs, this)
 
@@ -135,8 +135,6 @@ def unpack(defs, this, tmpfile):
 
 
 def upload(defs, this):
-    if this.get('kind', 'chunk') != 'chunk':
-        return
     cachefile = get_cache(defs, this)
     url = app.config['kbas-url'] + 'upload'
     app.log(this, 'Uploading %s to' % this['cache'], url)
@@ -179,18 +177,12 @@ def get_cache(defs, this):
                 pass
         return os.path.join(cachedir, cache_key(defs, this))
 
-    return False
+    return get_remote(defs, this)
 
 
 def get_remote(defs, this):
     ''' If a remote cached artifact exists for this, retrieve it '''
     if app.config.get('kbas-url', 'http://foo.bar/') == 'http://foo.bar/':
-        return False
-
-    if app.config.get('last-retry-component') == this:
-        return False
-
-    if this.get('kind', 'chunk') != 'chunk':
         return False
 
     try:
@@ -210,6 +202,7 @@ def get_remote(defs, this):
             with open(cachefile, 'wb') as f:
                 shutil.copyfileobj(response.raw, f)
 
+            app.config['counter'] += 1
             return unpack(defs, this, cachefile)
 
         except:

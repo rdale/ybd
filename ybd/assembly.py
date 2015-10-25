@@ -31,11 +31,13 @@ import time, datetime
 
 class RetryException(Exception):
     def __init__(self, defs, component):
+        app.log(component, "Retrying from the top")
         if app.config.get('last-retry'):
             wait = datetime.datetime.now() - app.config.get('last-retry')
             if wait.seconds < 1:
                 with open(lockfile(defs, component), 'r') as l:
-                    call(['flock', '--shared', '--timeout', str(30), \
+                    call(['flock', '--shared',
+                          '--timeout', app.config.get('timeout', 60),
                           str(l.fileno())])
         app.config['last-retry'] = datetime.datetime.now()
         app.config['last-retry-component'] = component
@@ -50,9 +52,6 @@ def assemble(defs, target):
 
     component = defs.get(target)
     if get_cache(defs, component):
-        return cache_key(defs, component)
-    if get_remote(defs, component):
-        app.config['counter'] += 1
         return cache_key(defs, component)
 
     random.seed(datetime.datetime.now())
