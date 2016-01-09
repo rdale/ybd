@@ -13,15 +13,18 @@ jobs:
       - name: ybd
       - name: definitions
       run:
-        path: python
-        args: ['ybd/ybd.py', 'build-essential', 'x86_64']
+        path: ybd/scripts/build.sh
+        args: []
+#      run:
+#        path: python
+#        args: ['ybd/ybd.py', 'build-essential', 'x86_64']
 
 resources:
 - name: ybd
   type: git
   source:
     uri: https://github.com/devcurmudgeon/ybd.git
-    branch: master
+    branch: concourse-foo
 - name: definitions
   type: git
   source:
