@@ -167,6 +167,8 @@ def build(defs, this):
     for build_step in defs.defaults.build_steps:
         if this.get(build_step):
             app.log(this, 'Running', build_step)
+        sandbox.run_sandboxed( this, 'echo $PATH', env=env_vars)
+        sandbox.run_sandboxed( this, 'which ld', env=env_vars)
         for command in this.get(build_step, []):
             if command is False:
                 command = "false"
