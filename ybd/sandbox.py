@@ -66,22 +66,11 @@ def install(defs, this, component):
         app.exit(this, 'ERROR: unable to get cache for', component['name'])
 
     unpackdir = cache.get_cache(defs, component) + '.unpacked'
-    artifacts = component.get('artifacts')
-    if artifacts:
-        app.log('sandbox.install', 'this: ' + this['name'] + ' component: ' + component['name'] + ' artifacts: ' + str(artfacts))
 
     if this.get('kind') is 'system':
-        if artifacts:
-            files = splitting.files_for_stratum_artifacts(component, artifacts, this['sandbox'])
-            utils.copy_file_list(unpackdir, this['sandbox'], files)
-        else:
-            utils.copy_all_files(unpackdir, this['sandbox'])
+        utils.copy_all_files(unpackdir, this['sandbox'])
     else:
-        if artifacts and component.get('kind') is 'stratum':
-            files = splitting.files_for_stratum_artifacts(defs, component, artifacts, this['sandbox'])
-            utils.hardlink_file_list(unpackdir, this['sandbox'], files)
-        else:
-            utils.hardlink_all_files(unpackdir, this['sandbox'])
+        utils.hardlink_all_files(unpackdir, this['sandbox'])
 
 
 def ldconfig(this):
