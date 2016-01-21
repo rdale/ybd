@@ -28,6 +28,8 @@ import sandbox
 from shutil import copyfile
 import time
 import datetime
+import splitting
+import yaml
 
 
 class RetryException(Exception):
@@ -111,7 +113,13 @@ def do_build(defs, component):
         build(defs, component)
 
     with app.timer(component, 'artifact creation'):
-        do_manifest(component)
+        kind = component.get('kind', 'chunk')
+
+        if kind == 'chunk':
+           splitting.write_chunk_metafile(defs, component)
+        elif kind == 'stratum':
+           splitting.write_stratum_metafiles(defs, component)
+
         cache(defs, component)
 
 
@@ -251,12 +259,3 @@ def gather_integration_commands(defs, this):
         result.extend(all_commands[key])
     return result
 
-
-def do_manifest(this):
-    metafile = os.path.join(this['baserockdir'], this['name'] + '.meta')
-    with app.chdir(this['install']), open(metafile, "w") as f:
-        f.write("repo: %s\nref: %s\n" % (this.get('repo'), this.get('ref')))
-        f.flush()
-        call(['find'], stdout=f, stderr=f)
-    copyfile(metafile, os.path.join(app.config['artifacts'],
-                                    this['cache'] + '.meta'))

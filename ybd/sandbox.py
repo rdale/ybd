@@ -28,7 +28,7 @@ import app
 import cache
 import utils
 from repos import get_repo_url
-
+import splitting
 
 # This must be set to a sandboxlib backend before the run_sandboxed() function
 # can be used.
@@ -64,11 +64,24 @@ def install(defs, this, component):
         app.log(this, 'Installing %s' % component['cache'])
     if cache.get_cache(defs, component) is False:
         app.exit(this, 'ERROR: unable to get cache for', component['name'])
+
     unpackdir = cache.get_cache(defs, component) + '.unpacked'
+    artifacts = component.get('artifacts')
+    if artifacts:
+        app.log('sandbox.install', 'this: ' + this['name'] + ' component: ' + component['name'] + ' artifacts: ' + str(artfacts))
+
     if this.get('kind') is 'system':
-        utils.copy_all_files(unpackdir, this['sandbox'])
+        if artifacts:
+            files = splitting.files_for_stratum_artifacts(component, artifacts, this['sandbox'])
+            utils.copy_file_list(unpackdir, this['sandbox'], files)
+        else:
+            utils.copy_all_files(unpackdir, this['sandbox'])
     else:
-        utils.hardlink_all_files(unpackdir, this['sandbox'])
+        if artifacts and component.get('kind') is 'stratum':
+            files = splitting.files_for_stratum_artifacts(defs, component, artifacts, this['sandbox'])
+            utils.hardlink_file_list(unpackdir, this['sandbox'], files)
+        else:
+            utils.hardlink_all_files(unpackdir, this['sandbox'])
 
 
 def ldconfig(this):
