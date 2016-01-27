@@ -21,6 +21,7 @@ import glob
 import re
 import assembly
 import yaml
+import utils
 
 def load_metafile(defs, target):
     '''Load an individual .meta file for a chunk or stratum
@@ -53,12 +54,12 @@ def load_metafile(defs, target):
 
     return metadata
 
-def files_for_stratum_artifacts(defs, stratum, artifacts, destpath):
+def copy_stratum_artifacts(defs, stratum, artifacts, destpath):
     '''Create the .meta files for a split stratum
 
     Given a stratum and a list of artifacts to split, writes new .meta files to
-    the baserock dir in the 'destpath' and returns a list of files to copy to the
-    destpath
+    the baserock dir in the 'destpath' and copies the files from the .unpacked
+    directory of each individual chunk to destpath
 
     '''
     stratum_metadata = load_metafile(defs, stratum['path'])
@@ -73,16 +74,19 @@ def files_for_stratum_artifacts(defs, stratum, artifacts, destpath):
 
     app.log('files_for_stratum_artifacts', 'artifacts: ' + str(artifacts) + ' components: ' + str(components))
 
-    split_stratum_metafile = os.path.join(destpath, 'baserock', stratum['name'] + '.meta')
+    baserockpath = os.path.join(destpath, 'baserock')
+    os.mkdir(baserockpath)
+    split_stratum_metafile = os.path.join(baserockpath, stratum['name'] + '.meta')
     with open(split_stratum_metafile, "w") as f:
         yaml.safe_dump(split_stratum_metadata, f, default_flow_style=False)
 
-    filelist = []
     cachepath, cachedir = os.path.split(get_cache(defs, stratum))
-    metafiles = glob.glob(os.path.join(cachepath, cachedir + '.unpacked', 'baserock', '*.meta'))
-    for metafile in metafiles:
+    for path in stratum['contents']:
+        chunk = defs.get(path)
+        metafile = os.path.join(cachepath, cachedir + '.unpacked', 'baserock', chunk['name'] + '.meta')
         try:
             with open(metafile, "r") as f:
+                filelist = []
                 metadata = yaml.safe_load(f)
                 split_metadata = {}
                 split_metadata['ref'] = metadata['ref']
@@ -94,13 +98,15 @@ def files_for_stratum_artifacts(defs, stratum, artifacts, destpath):
                         split_metadata['products'].append(element)
 
                 if split_metadata['products'] != []:
-                    split_metafile = os.path.join(destpath, 'baserock', os.path.basename(metafile))
+                    split_metafile = os.path.join(baserockpath, os.path.basename(metafile))
                     with open(split_metafile, "w") as f:
                         yaml.safe_dump(split_metadata, f, default_flow_style=False)
-        except:
-            app.log('filelist_for_stratum_artifacts', 'WARNING: problem loading ', metafile)
 
-    return filelist
+                    chunk_cachepath, chunk_cachedir = os.path.split(get_cache(defs, chunk))
+                    srcpath = os.path.join(chunk_cachepath, chunk_cachedir + '.unpacked')
+                    utils.copy_file_list(srcpath, destpath, filelist)
+        except:
+            app.log('copy_stratum_artifacts', 'WARNING: problem loading ', metafile)
 
 def write_chunk_metafile(defs, chunk):
     '''Writes a chunk .meta file to the baserock dir of the chunk
