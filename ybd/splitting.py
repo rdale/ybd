@@ -212,7 +212,11 @@ def write_stratum_metafiles(defs, stratum):
             regexps.append([artifact, regexp])
             splits[artifact] = []
 
-    for chunk in stratum['chunks']:
+    for item in stratum['contents']:
+        chunk = defs.get(item)
+        if chunk.get('build-mode', 'staging') == 'bootstrap':
+            continue
+        
         metadata = load_metafile(defs, chunk['path'])
         split_metadata = {}
         split_metadata['ref'] = metadata['ref']
